@@ -45,3 +45,8 @@
 - `pm2`
 - `typeORM`
 - `postgresql`
+
+### devOps
+
+- `docker`
+- `ec2`
