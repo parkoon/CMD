@@ -1,2 +1,2 @@
 # CMD
-🧐 consistency, maketh, develper
+🧐 consistency, maketh, developer
