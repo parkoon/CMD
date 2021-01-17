@@ -1,4 +1,4 @@
-# 의존성 주입과 역전에 대해서
+# Dependency Inversion Principle
 
 [Dependency Injection & Inversion Explained | Node.js w/ Typescript](https://khalilstemmler.com/articles/tutorials/dependency-injection-inversion-explained/) 에 대한 번역글입니다.
 
