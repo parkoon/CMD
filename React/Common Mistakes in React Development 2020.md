@@ -682,3 +682,37 @@ const ComponentA = ({ foo }) => {
 ```
 
 ### 10. router.push 를 이용한 라우팅 이동
+
+아래 코드를 실행 시켰을 때 동작에 문제가 있을까?
+
+```javascript
+function App() {
+  const router = useRouter();
+
+  const somewhere = () => {
+    router.push("somewhere");
+  };
+
+  return (
+    <div>
+      <button onClick={somewhere}>어딘론가 떠나기</button>
+    </div>
+  );
+}
+```
+
+없다!
+
+하지만 위와 같은 코드를 작성하게 되면 `screen reader`는 웹 페이지의 구조를 제대로 파악하지 못할 것이고, 크롬으로 부터 좋지 않은 `Accessibility` 점수를 받게 될 것이다.
+
+웹 접근성에 준수한 코드를 작성하려면 `Link` 를 이용해야 한다.
+
+```javascript
+function App() {
+  return (
+    <div>
+      <Link href="somewhere">어딘론가 떠나기</Link>
+    </div>
+  );
+}
+```
