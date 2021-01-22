@@ -321,56 +321,364 @@ function App() {
 
 ## 5. 불필요한 렌더링
 
-- 불필요한 렌더링을 막기위해서는 업데이트가 필요없는 컴포넌트를 분리하여 React.memo 를 이용해 메모리에
-  저장해둔다.
-- useState 를 무분별하게 사용하면 안된다.
+불필요한 렌더링을 막고 리액트 앱 성능을 개선할 수 있는 가장 간단한 방법은 아래 2가지다.
 
-### 5-1. useRef
+1. 불필요한 렌더링을 막기위해서는 업데이트가 필요없는 컴포넌트를 분리하여 React.memo 를 이용해 메모리에
+   저장해둔다.
+2. useState 를 무분별하게 사용하면 안된다.
 
-카운터를 증가시켜서 서버에 전송한다면..? useState 를 써야할까?
+아래 예시는 메세지를 입력할 수 있고, 사진을 랜덤으로 5000개 불러와서 렌더링하고 있다.
 
-### 5-2. React.memo
+```javascript
+function App() {
+  const [message, setMessage] = useState("");
+  const [photos, setPhotos] = useState([]);
 
-### 5-3. React.useMemo
+  useEffect(() => {
+    async function fetchPhotos() {
+      const photos = await (
+        await fetch("https://jsonplaceholder.typicode.com/photos")
+      ).json();
+      setPhotos(photos);
+    }
 
-### 6. useEffect를 사용해 액션 핸들링`
+    fetchPhotos();
+  }, []);
 
-장담할 수 없다. 코드 가독성도 매우 떨어진다.
+  return (
+    <div>
+      <input value={message} onChange={(e) => setMessage(e.target.value)} />
+      {photos.map(({ id, title, thumbnailUrl }) => (
+        <div key={id}>
+          <h2>{title}</h2>
+          <img src={thumbnailUrl} alt={title} width="200" height="200" />
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+위 앱을 실행하고 메세지를 입력하려고 하는 순가 아무리 빠른 컴퓨터라도 버벅임을 느낄 수 있을 것이다.
+
+`message` 를 입력 할 때 계속해서 `re-rendering` 이 발생하는데 이 때마다 5000개의 사진에도 `re-rendering` 이 발생해서 생기는 문제다.
+
+우리는 이 문제를, `PhotoList` 컴포넌트로 분리시키고 해당 컴포넌트의 `props` 가 변경되었을 때만 렌더링되게 수정하고자 한다.
+(예제 특성상 성능개선에 목적이 있기 때문에 `PhotoList` 컴포넌트를 세부적으로 나누진 않을 것이다.)
+
+```javascript
+function App() {
+
+  ...
+
+  return (
+    <div>
+      ...
+      <PhotoList photos={photos} />
+    </div>
+  );
+}
+```
+
+```javascript
+const PhotoList = ({ photos = [] }) => {
+  return photos.map(({ id, title, thumbnailUrl }) => (
+    <div key={id}>
+      <h2>{title}</h2>
+      <img src={thumbnailUrl} alt={title} width="200" height="200" />
+    </div>
+  ));
+};
+```
+
+우선 `PhotoList` 컴포넌트를 생성했다. 그리고 여기에 `React.memo` 만 감싸주면 끝난다.
+
+```javascript
+const PhotoList = React.memo(({ photos = [] }) => {
+  return photos.map(({ id, title, thumbnailUrl }) => (
+    <div key={id}>
+      <h2>{title}</h2>
+      <img src={thumbnailUrl} alt={title} width="200" height="200" />
+    </div>
+  ));
+});
+```
+
+이게 실행해서 `message` 의 값을 변경해도 `PhotoList` 의 `props` 인 `photos` 변경이 없으므로 `PhotoList`의 `re-rendering`은 발생하지 않는다.
+
+두 번째 예시는 (+) 버튼을 클릭 할 때마다 카운트를 증가시키고 SUBMIT 버튼을 통해 서버로 데이터를 보내고 있다.
+
+```javascript
+function App() {
+  const [count, setCount] = useState(0);
+
+  const handleIncrease = () => {
+    setCount((c) => c + 1);
+  };
+
+  const submitCount = () => {
+    sendCountToServer(count);
+  };
+
+  return (
+    <div>
+      <button onClick={handleIncrease}>+</button>
+      <button type="submit" onClick={submitCount}>
+        SUBMIT
+      </button>
+    </div>
+  );
+}
+```
+
+동작에는 문제 없지만, 불필요하게 `state` 를 사용하고 있다. `state` 를 사용할 때
+
+> 과연 이 값이 화면에 변화를 일으키는가?
+
+를 확인해봐야 한다.
+
+`count` 값은 화면을 변화시키는 것이 아닌, 변화된 값을 서버로 전송하는 일을 하고 있으므로 `state`로 처리하는 것은 적합하지 않고 불필요한 렌더링을 발생시키는 원인이 된다.
+
+위 코드를 `useRef` 를 이용해 변경하면 불필요한 `state` 를 제거함으로써 렌더링을 최적화할 수 있다.
+
+```javascript
+function App() {
+  const count = useRef(0);
+
+  const handleIncrease = () => {
+    count.current++;
+  };
+
+  const submitCount = () => {
+    sendCountToServer(count.current);
+  };
+
+  return (
+    <div>
+      <button onClick={handleIncrease}>+</button>
+      <button type="submit" onClick={submitCount}>
+        SUBMIT
+      </button>
+    </div>
+  );
+}
+```
+
+### 6. useEffect를 사용해 액션 핸들링
+
+우리는 `useEffect` 를 통해 데이터를 `watching` 하고 있다가, 값이 충족되면 함수를 호출과 같은 특정 행동을 취할 수 있다.
+
+아래는 `onSuccess` 라는 콜백을 `useEffect` 를 통해 호출하는 예시를 보여주고 있다.
+
+```javascript
+function App({ onSuccess }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [photos, setPhotos] = useState(null);
+
+  const fetchPhotos = () => {
+    setLoading(true);
+    fetch("https://jsonplaceholder.typicode.com/photos")
+      .then((res) => res.json())
+      .then((photos) => setPhotos(photos))
+      .catch((err) => setError(err))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchPhotos();
+  }, []);
+
+  useEffect(() => {
+    if (!loading && !error && data) {
+      onSuccess();
+    }
+  }, [loading, error, data, onSuccess]);
+
+  return <div>{JSON.stringify(data)}</div>;
+}
+```
+
+`useEffect` 함수는 정~말 편리한 `hook` 임에는 틀림없다. 하지만 위와 같이 많은 데이터를 `watching` 하고 있다면, 당장 내일이라도 어떤 상황에서 `useEffect` 가 실행되길 바랬지? 라는 생각을 하게된다. (그래서 우리는 여러줄의 주석을 `useEffect` 위에 작성하곤 한다.)
+
+코드 가독성 뿐만 아니라, 정상 호출에 대해 장담할 수 없다.
+
+위 코드를 수정한다면, `useEffect` 를 지우고 API 호출 성공했을 때 `onSuccess` 를 호출해주면 끝난다.
+
+```javascript
+function App({ onSuccess }) {
+
+  ...
+
+  const fetchPhotos = () => {
+    setLoading(true);
+    fetch("https://jsonplaceholder.typicode.com/photos")
+      .then((res) => res.json())
+      .then((photos) => {
+        setPhotos(photos)
+        onSuccess() // 추가된 코드
+      })
+      .catch((err) => setError(err))
+      .finally(() => setLoading(false));
+  };
+
+  //  useEffect(() => {
+  //     if (!loading && !error && data) {
+  //       onSuccess();
+  //     }
+  //   }, [loading, error, data, onSuccess]);
+
+  ...
+}
+```
 
 ### 7. 단일 책임 원칙을 준수한 컴포넌트
 
-```
-function Header({ menuItems }) {
+클린 코드를 공부해봤다면 `SOLID` 에 대해서 들어봤을 것이다.
+여기서 `S` 인 `Single Responsibility Principle` 을 컴포넌트에 적용한 예이다.
+
+```javascript
+function Header({ something }) {
   return (
     <header>
-      <HeaderInner menuItems={menuItems} />
+      <HeaderInner something={something} />
     </header>
   );
 }
+```
 
-function HeaderInner({ menuItems }) {
-  return isMobile() ? <BurgerButton menuItems={menuItems} /> : <Tabs tabData={menuItems} />;
+아래 코드르 보기전에 `HeaderInner` 컴포넌트의 이름을 잠시 들여다보자. 조금만 더 들여다보자.
+
+`HeaderInner` 라는 포장지 안에 어떤 선물이 들어있을지 아무도 모를 것이다.
+
+코드에서 깜짝 서프라이즈는 개발자 수명에 매우 좋지 않다.
+
+아마 `HeaderInner` 라는 명칭을 사용한 개발자는 아래를 점검했어야 했다.
+
+> 컴포넌트가 두 가지 일을 한번에 하려고해서 네이밍이 힘들었던게 아닐까?
+
+네이밍이 힘들다는 것은 컴포넌트를 분리해야 한다는 신호다.
+
+이제 `HeaderInner` 를 공개한다.
+
+```javascript
+function HeaderInner() {
+  return isMobile ? (
+    <BurgerButton something={something} />
+  ) : (
+    <Tabs something={something} />
+  );
 }
 ```
 
-```
+`isMobile` 값을 이용해 모바일인지 확인하고 햄버거 버튼 또는 탭을 렌더링 하고 있었다.
+
+아주 놀라운 선물이다. ~~7시 칼퇴 🔥~~
+
+칼퇴하고 싶으면 `단일 책임 원칙`을 지켜서 컴포넌트를 만들도록 하자.
+
+```javascript
 function Header(props) {
   return (
-    <header>{isMobile() ? <BurgerButton menuItems={menuItems} /> : <Tabs tabData={menuItems} />}</header>
+    <header>
+      {isMobile() ? (
+        <BurgerButton menuItems={menuItems} />
+      ) : (
+        <Tabs tabData={menuItems} />
+      )}
+    </header>
   );
 }
 ```
 
 ### 8. 단일 책임 원칙을 준수한 useEffect
 
+위 6번에서 `useEffect` 훅을 조심히 잘 다뤄야 한다에 이어지는 내용일 수 있겠다.
+
+단일 책임 원칙에 대해서는 7번에서 간단히 설명했으니 이해했을거라 생각한다.
+
+아래 `useEffect`를 보자
+
+```javascript
+useEffect(() => {
+  onCountChange(count);
+  onUsernameChange(username);
+}, [count, username]);
+```
+
+`count` 와 `username` 이 변경될 때마다 `useEffect` 가 실행될 것이다. 그리고 `onCountChange`, `onUsernameChange` 호출하여 변경된 데이터를 전달하고 있다.
+
+긴말할 필요 없이 아래 처럼 당장 바꿔라.
+
+```javascript
+useEffect(() => {
+  onCountChange(count);
+}, [count]);
+
+useEffect(() => {
+  onUsernameChange(username);
+}, [username]);
+```
+
+**TMI** 사실 예제를 만들려고 위와 같이 훅을 구성했지만, 하나의 컴포넌트에서 `username`, `count` 에 대한 훅이 2개가 있다면 단일 책임 원칙을 준수하지 못한 컴포넌트다.
+
 숫자가 변경될 때 카운터가 실행되고, fetch 한다면, 훅을 따로써야지?
 
 ### 9. 잘못된 HOC 의 사용
 
-use hoc without displayName
+아래는 동작에는 문제 없지만, 컴포넌트 트리를 해치는 `hoc` 를 보여주고 있다.
+
+```javascript
+function App() {
+  const ComponentAWithFoo = withFoo(ComponentA);
+  return <ComponentAWithFoo />;
+}
+
+function withFoo(Component) {
+  return class Wrapper extends React.Component {
+    render() {
+      return <Component foo="bar" {...this.props} />;
+    }
+  };
+}
+
+const ComponentA = ({ foo }) => {
+  return <div>I'm Component A with {foo}</div>;
+};
+```
+
+코드에는 문제 없지만, **React devTool** 을 설치하고 **Components** 탭을 들어가서 `HOC` 가 적용된 `ComponentA` 이름을 확인해보면 `ComponentA` 만 출력되고 있어 해당 컴포넌트가 `HOC` 가 적용되었는지 알 수 없다.
+
+따라서, 제대로된 이름을 출력하기 위해서는 `hoc` 두번째 인자로 컴포넌트 이름을 보내줄 수 있지만, 아래 라이브러리를 추천한다.
+
+```
+npm i recompose
+```
+
+위에서 설치한 라이브러리를 이용해 위 코드를 변경하면 다음과 같다.
+
+```javascript
+import React from "react";
+import getDisplayName from "recompose/getDisplayName";
+
+function App() {
+  const ComponentAWithFoo = withFoo(ComponentA);
+  return <ComponentAWithFoo />;
+}
+
+function withFoo(Component) {
+  Component.displayName = `withFoo_${getDisplayName(Component)}`;
+
+  return class Wrapper extends React.Component {
+    render() {
+      return <Component foo="bar" {...this.props} />;
+    }
+  };
+}
+
+const ComponentA = ({ foo }) => {
+  return <div>I'm Component A with {foo}</div>;
+};
+```
 
 ### 10. router.push 를 이용한 라우팅 이동
-
-## 참고
-
-- https://www.tiny.cloud/blog/six-common-mistakes-to-avoid-when-using-react/
