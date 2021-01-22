@@ -1,4 +1,4 @@
-## # 1
+# # 1
 
 ```javascript
 import randomId from "random-id";
@@ -91,3 +91,51 @@ function App() {
 **problem 2** : 해당 코드를 실행하여 사용자의 이름을 입력하면 `A component is changing an uncontrolled input to be controlled` 와 같은 `Warning` 이 발생합니다. 경고를 없애기 위해 어떤 부분을 수정해야 할까요.
 
 **problem 3** : 현재 앱은 불필요한 렌더링이 발생하고 있습니다. 불필요한 렌더링 지점을 찾고 해결 방법을 설명합니다.
+
+# # 2
+
+```javascript
+function App({ successIncrease }) {
+  const [count, setCount] = useState(0);
+  const handleIncrease = () => {
+    count = count + 1;
+    successIncrease(count);
+  };
+  return (
+    <div>
+      <span>{count}</span>
+      <button onClick={handleIncrease}>+</button>
+    </div>
+  );
+}
+```
+
+```javascript
+function App({ successIncrease }) {
+  const [count, setCount] = useState(0);
+  const handleIncrease = () => {
+    setCount(count + 1);
+    successIncrease(count);
+  };
+  return (
+    <div>
+      <span>{count}</span>
+      <button onClick={handleIncrease}>+</button>
+    </div>
+  );
+}
+```
+
+## Comment
+
+---
+
+**comment 1** : (+) 버튼을 클릭 할 때마다 `count` 의 상태값을 1씩 증가시키고, `successIncrease` 으로 증가된 값을 부모로 전달합니다.
+
+**comment 2** : 두 예제의 문제점을 파악하고, 수정 방안을 제시합니다.
+
+## Problem
+
+---
+
+**problem 1** : 첫 번째 예제는 정상적으로 동작하지 않으며, 두 번째 예제는 정상적으로 동작하지만 좋지 않은 코딩으로 `successIncrease` 로 부모에게 전달되는 `count` 의 값을 보장할 수 없습니다.

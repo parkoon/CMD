@@ -270,6 +270,55 @@ function UserList({ users }) {
 
 setState 는 비동기로 동작합니다. 카운트 증가, 연속 클릭과 같이 상태를 변경할 땐 콜백 함수를 이용해 상태를 변경해야합니다.
 
+```javascript
+function App() {
+  const [count, setCount] = useState(0);
+  const handleIncrease = () => {
+    setCount(count + 1);
+  };
+  return (
+    <div>
+      <span>{count}</span>
+      <button onClick={handleIncrease}>+</button>
+    </div>
+  );
+}
+```
+
+위 코드를 실행해서 (+) 버튼을 누르면 문제없이 동작한다. 하지만 아래와 같이 코드를 변경한다면 얘기가 달라진다.
+
+```javascript
+function App() {
+  ...
+
+  const handleIncrease = () => {
+    setCount(count + 1);
+    setCount(count + 1);
+  };
+
+  ...
+}
+```
+
+(+) 버튼을 클릭할 때마가 2씩 증가할까?
+
+답은 1씩 증가한다. 이유는 `setCount` 는 비동기로 동작하기 때문이다. 이전 값을 참조하여 특정 기능을 수행하야 한다면, 콜백으로 상태값을 변경해야 한다.
+
+```javascript
+function App() {
+  const [count, setCount] = useState(0);
+  const handleIncrease = () => {
+    setCount((c) => c + 1);
+  };
+  return (
+    <div>
+      <span>{count}</span>
+      <button onClick={handleIncrease}>+</button>
+    </div>
+  );
+}
+```
+
 ## 5. 불필요한 렌더링
 
 - 불필요한 렌더링을 막기위해서는 업데이트가 필요없는 컴포넌트를 분리하여 React.memo 를 이용해 메모리에
