@@ -64,7 +64,163 @@ function Somewhere() {
 
 ## 2. 프레젠테이션 컴포넌트와 컨테이너 컴포넌트를 분리
 
-재사용성 up
+서버에서 데이터를 받아와 처리하는 부분과 화면을 보여주는 부분이 분리되어 있지 않으면, 하나의 파일에 코드양이 많아지면서 가독성이 떨어질 뿐만 아니라 컴포넌트를 재사용하는데 문제가 생긴다.
+
+아래 예시는 데이터를 가져오는 부분과 화면을 보여주는 부분이 하나의 파일에 있는 경우다.
+
+```javascript
+import { useEffect, useState } from "react";
+
+function App() {
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    async function fetchPosts() {
+      const posts = await (
+        await fetch("https://jsonplaceholder.typicode.com/posts")
+      ).json();
+      setPosts(posts);
+    }
+
+    fetchPosts();
+  }, []);
+  return (
+    <ul>
+      {posts.map(({ id, title, body }) => (
+        <li key={id}>
+          <h3>{title}</h3>
+          <p>{body}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+다른 컴포넌트에서 `posts` 의 데이터가 필요하다면 `useState` 와 `useEffect` 부분을 복사해서 사용하게 된다.
+
+어떻게하면 복사를하지 않고 컴포넌트를 재활용할 수 있을까?
+
+데이터를 가져와 주입해주는 부분은 `PostContainer` 로 화면을 보여주는 부분을 `PostList` 로 리팩토링을 진행해보자.
+
+_PostItem_
+
+```javascript
+function PostItem({ post }) {
+  return (
+    <li>
+      <h3>{post.title}</h3>
+      <p>{post.body}</p>
+    </li>
+  );
+}
+```
+
+_PostList_
+
+```javascript
+function PostList({ posts = [] }) {
+  return (
+    <ul>
+      {posts.map(({ id, ...post }) => (
+        <PostItem key={id} post={post} />
+      ))}
+    </ul>
+  );
+}
+```
+
+_PostContainer_
+
+```javascript
+function PostContainer() {
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    async function fetchPosts() {
+      const posts = await (
+        await fetch("https://jsonplaceholder.typicode.com/posts")
+      ).json();
+      setPosts(posts);
+    }
+
+    fetchPosts();
+  }, []);
+
+  return <PostList posts={posts} />;
+}
+```
+
+```javascript
+function App() {
+  return <PostContainer />;
+}
+```
+
+이제 데이터를 가져오는 부분과 화면을 처리하는 부분이 분리되었다.
+
+위 코드 써보면 알겠지만, 화면은 재사용해서 쓸 수 있는것 같은데, `PostContainer`를 보니 `PostList` 를 렌더링하고 있어서 위에서 언급한 `posts` 의 재활용엔 문제가 있다.
+
+이 문제는 아래 2가지 방법으로 해결할 수 있다.
+
+1. `React.cloneElement` 를 활용해 `posts` 주입
+2. `children` 을 함수로 변경
+
+#### `children.cloneElement` 를 활용해 `posts` 주입
+
+`PostContainer` 를 아래와 같이 변경해준다.
+
+```javascript
+function PostContainer({ children }) {
+  const [posts, setPosts] = useState([]);
+
+  ...
+
+  return React.cloneElement(children, { posts });
+}
+```
+
+`children`을 받고, `React.cloneElement` 를 통해 전달받은 `children` 에 `posts` 데이터를 주입해주고 있다.
+
+그리고 `App` 컴포넌트를 아래와 같이 변경하면 끝이다.
+
+```javascript
+function App() {
+  return (
+    <PostContainer>
+      <PostList />
+    </PostContainer>
+  );
+}
+```
+
+#### `children` 을 함수로 변경
+
+`PostContainer` 에서 렌더링하는 부분을 `children` 함수 호출로 변경해준다.
+
+```javascript
+function PostContainer({ children }) {
+  ...
+
+  return children({ posts });
+}
+```
+
+그리고 `App` 에서는 컴포넌트가 아닌 콜백함수는 넘겨주고 `PostContainer` 에서 콜백으로 넘겨주는 `posts` 데이터를 사용하면 된다.
+
+```javascript
+function App() {
+  return (
+    <PostContainer>{({ posts }) => <PostList posts={posts} />}</PostContainer>
+  );
+}
+```
+
+위 내용을 정리하면 우리는 데이터와 화면을 구분하기 위해
+
+1. `Container` 와 `View` 부분을 분리
+2. `Container` 에서 `React.cloneElement` 를 활용해 `posts` 주입
+3. (2) 방법 또는 `Container` 에서 `children` 을 함수로 받고 `posts`를 인자로 호출
 
 ## 3. 키의 부재
 
