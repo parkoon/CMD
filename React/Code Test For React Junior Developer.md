@@ -155,7 +155,6 @@ function App() {
     if (e.keyCode !== ENTER_CODE) return;
 
     addUser(username);
-    setUsername("");
   };
 
   const addUser = (name) => {
@@ -203,8 +202,6 @@ function App() {
 
 ## Comment
 
----
-
 **comment 1** : 새로운 유저의 이름를 입력 받은 후 추가된 사용자의 이메일을 입력하는 시나리오 입니다.
 
 **comment 2** : 새로운 유저는 리스트 첫 번째에 추가되고 있습니다.
@@ -217,15 +214,55 @@ function App() {
 
 ## Problem
 
----
-
 **problem 1** : 현재 앱은 시나리오대로 동작하지 않고 있습니다. 문제가 있는 부분을 찾아 수정하고 그 이유를 설명합니다.
 
 **problem 2** : 해당 코드를 실행하여 사용자의 이름을 입력하면 `A component is changing an uncontrolled input to be controlled` 와 같은 `Warning` 이 발생합니다. 경고를 없애기 위해 어떤 부분을 수정해야 할까요.
 
-**problem 3** : 현재 앱은 불필요한 렌더링이 발생하고 있습니다. 불필요한 렌더링 지점을 찾고 해결 방법을 설명합니다.
+**problem 3** : 사용자 이름 입력이 완료되면 `input` 을 초기화하고 싶습니다. 어떤 부분에 어떤 코드를 추가해야 할까요.
 
 # 주관식 #2
+
+```javascript
+function App() {
+  const [message, setMessage] = useState("");
+  const [photos, setPhotos] = useState([]);
+
+  useEffect(() => {
+    async function fetchPhotos() {
+      const photos = await (
+        await fetch("https://jsonplaceholder.typicode.com/photos")
+      ).json();
+      setPhotos(photos);
+    }
+
+    fetchPhotos();
+  }, []);
+
+  return (
+    <div>
+      <input value={message} onChange={(e) => setMessage(e.target.value)} />
+      {photos.map(({ id, title, thumbnailUrl }) => (
+        <div key={id}>
+          <h2>{title}</h2>
+          <img src={thumbnailUrl} alt={title} width="200" height="200" />
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+## Comment
+
+**comment 1** : `https://jsonplaceholder.typicode.com/photos` 를 통해 5000개의 사진을 불러와 렌더링 합니다.
+
+**comment 2** : `input` 으로 `message` 입력을 받습니다.
+
+## Problem
+
+**problem 1** : 해당 앱을 실행해서 메세지를 입력하려 하면, 버퍼링이 걸린듯이 메세지가 입력 속도에 문제가 발생합니다. 어떻게 해결할 수 있을까요.
+
+# 주관식 #3
 
 ```javascript
 function App({ successIncrease }) {
@@ -261,14 +298,10 @@ function App({ successIncrease }) {
 
 ## Comment
 
----
-
 **comment 1** : (+) 버튼을 클릭 할 때마다 `count` 의 상태값을 1씩 증가시키고, `successIncrease` 으로 증가된 값을 부모로 전달합니다.
 
 **comment 2** : 두 예제의 문제점을 파악하고, 수정 방안을 제시합니다.
 
 ## Problem
-
----
 
 **problem 1** : 첫 번째 예제는 정상적으로 동작하지 않으며, 두 번째 예제는 정상적으로 동작하지만 좋지 않은 코딩으로 `successIncrease` 로 부모에게 전달되는 `count` 의 값을 보장할 수 없습니다.
