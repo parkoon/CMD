@@ -87,9 +87,9 @@ $ npm start
   "type": "postgres",
   "host": "localhost",
   "port": 5432,
-  "username": "test",
-  "password": "test",
-  "database": "test",
+  "username": "test", // 변경해야 하는 옵션
+  "password": "test", // 변경해야 하는 옵션
+  "database": "test", // 변경해야 하는 옵션
   "synchronize": true,
   "logging": false,
   "entities": ["src/entity/**/*.ts"],
