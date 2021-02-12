@@ -91,20 +91,16 @@ $ npm run typeorm schema:sync
 
 ### 9. cli.js migration:show
 
-Show all migrations and whether they have been run or not
+모든 마이그레이션을 보여준다.
 
 ### 10. cli.js migration:revert
 
-Reverts last executed migration.
+마지막으로 실행만 마이그레이션을 취소한다.
 
 ### 11. cli.js version
 
-Prints TypeORM version this project uses.
+TypeORM 버전을 출력한다.
 
 ### 12. cli.js cache:clear
 
-Clears all data stored in query runner cache.
-
-### 13. cli.js init
-
-Generates initial TypeORM project structure. If name specified then creates files inside directory called as name. If its not specified then creates files inside current directory.
+쿼리 관련된 캐시를 모두 지운다.
